@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mini IA Mistral 7B</title>
+<style>
+body { font-family: sans-serif; padding: 20px; background:#f9f9f9; }
+textarea { width: 100%; height: 60px; font-size:16px; }
+button { margin-top:10px; width:100%; padding:10px; font-size:16px; }
+#output { background:#eee; padding:10px; min-height:100px; white-space:pre-wrap; word-wrap:break-word; margin-top:10px; }
+.user { color: blue; }
+.ia { color: green; }
+</style>
+</head>
+<body>
+<h2>Mini IA Mistral 7B</h2>
+
+<textarea id="prompt" placeholder="Tape ta question ici..."></textarea>
+<button onclick="sendPrompt()">Envoyer</button>
+<div id="output"></div>
+
+<script>
+var chatHistory = [];
+
+function sendPrompt() {
+    var promptField = document.getElementById("prompt");
+    var userPrompt = promptField.value.trim();
+    if(!userPrompt) return;
+
+    // Ajouter le message utilisateur
+    chatHistory.push({role:"user", text:userPrompt});
+    updateOutput();
+
+    // Appel au serveur Render
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://serveur-d4pu.onrender.com/api", true); // Remplace TON_URL_RENDER par ton URL Render
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function() {
+        if(xhr.readyState === 4) {
+            if(xhr.status === 200){
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    // Adapter selon la structure du JSON renvoyé par ton serveur
+                    var outputText = resp.output || resp.inputs || JSON.stringify(resp);
+                    chatHistory.push({role:"ia", text:outputText});
+                } catch(e){
+                    chatHistory.push({role:"ia", text:"Erreur lecture réponse : "+e});
+                }
+                updateOutput();
+            } else {
+                chatHistory.push({role:"ia", text:"Erreur serveur : "+xhr.status});
+                updateOutput();
+            }
+        }
+    };
+    xhr.send(JSON.stringify({prompt:userPrompt}));
+    promptField.value = "";
+}
+
+function updateOutput() {
+    var outputDiv = document.getElementById("output");
+    outputDiv.innerHTML = chatHistory.map(function(msg){
+        var cls = msg.role === "user" ? "user" : "ia";
+        return "<div class='"+cls+"'>"+(msg.role==="user"?"👤 ":"🤖 ")+msg.text+"</div>";
+    }).join("");
+}
+</script>
+</body>
+</html>
